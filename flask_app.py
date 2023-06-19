@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from twilio.twiml.messaging_response import MessagingResponse
 from dotenv import load_dotenv
 import os
+from sqlalchemy.exc import OperationalError
 
 load_dotenv()  # load environment variables from .env file
 
@@ -28,7 +29,16 @@ def sms_reply():
     # Store message in the database
     message = Message(body=message_body, sender=sender_number)
     db.session.add(message)
-    db.session.commit()
+
+    for attempt in range(5):  # try 5 times
+        try:
+            db.session.commit()
+            break
+        except OperationalError:
+            db.session.rollback()
+            if attempt == 4:  # if 5th attempt, raise the exception
+                raise
+            continue  # otherwise, try again
 
     resp = MessagingResponse()
 
@@ -39,7 +49,7 @@ def sms_reply():
 
 @app.route('/')
 def home():
-    return "Still changin, again."
+    return "Still changin."
 
 if __name__ == "__main__":
     app.run(debug=True)
