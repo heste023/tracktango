@@ -1,31 +1,11 @@
+import os
 import re
-from sqlalchemy import create_engine, MetaData
+import pandas as pd
+from sqlalchemy import create_engine, MetaData, Table
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
-import os
-import pandas as pd 
 
-# Load environment variables
-load_dotenv()
-
-# Get the SQLALCHEMY_DATABASE_URI from environment variables
-DATABASE_URI = os.getenv("SQLALCHEMY_DATABASE_URI")
-
-# Create engine
-engine = create_engine(DATABASE_URI)
-
-# Reflect the tables
-metadata = MetaData()
-metadata.reflect(bind=engine)
-
-# Get the message table
-Message = metadata.tables['message']  # Assuming 'message' is the name of your table
-
-# Start a new session
-Session = sessionmaker(bind=engine)
-session = Session()
-
-# Validation function
+# Function to validate message
 def is_valid_message(body):
     elements = body.split(',')
 
@@ -48,15 +28,43 @@ def is_valid_message(body):
     
     return True
 
+
+# Load environment variables
+load_dotenv()
+
+# Get the SQLALCHEMY_DATABASE_URI from environment variables
+DATABASE_URI = os.getenv("SQLALCHEMY_DATABASE_URI")
+
+# Create engine
+engine = create_engine(DATABASE_URI)
+
+# Reflect the tables
+metadata = MetaData()
+metadata.reflect(bind=engine)
+
+# Get the message table
+Message = metadata.tables['message']  # Assuming 'message' is the name of your table
+
+# Start a new session
+Session = sessionmaker(bind=engine)
+session = Session()
+
 # Fetch all records
-query = session.query(Message).statement
-df = pd.read_sql(query, session.bind)
+messages = session.query(Message).all()
 
-# Apply the validation function to the 'body' column to filter valid messages
-df = df[df['body'].apply(is_valid_message)]
+# Filtering the messages based on the rules
+filtered_messages = []
+for message in messages:
+    message_body = message.body
+    if is_valid_message(message_body):
+        filtered_messages.append([message.id, message_body])
 
-# Remove 'sender' column
-df = df.drop(columns='sender')
+# Create a pandas dataframe
+df = pd.DataFrame(filtered_messages, columns=['id', 'body'])
 
-# Print the DataFrame
-print(df)
+# Splitting the 'body' into separate columns
+df[['date', 'student', 'subject', 'topic', 'time']] = df['body'].str.split(',', expand=True)
+
+# Saving to CSV
+df.to_csv('cleaned_messages.csv', index=False)
+print("CSV file has been created successfully.")
