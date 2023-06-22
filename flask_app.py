@@ -63,19 +63,27 @@ def home():
     cleaned_messages_path = os.path.join(basedir, 'cleaned_messages.csv')
     df = pd.read_csv(cleaned_messages_path)
 
+    # Convert 'date' column to datetime format
+    df['date'] = pd.to_datetime(df['date'])
+
+    # Define week start on Sunday and end on Saturday
+    df['week'] = df['date'].dt.to_period('W-SAT').apply(lambda r: r.start_time)
+
     # Convert time to minutes
     df['time'] = df['time'].apply(lambda x: int(x.split()[0]) * 60 if 'hour' in x else int(x.split()[0]))
 
-    # Compute total time and time per subject for each student
-    total_time = df.groupby('student')['time'].sum()
-    time_per_subject = df.groupby(['student', 'subject'])['time'].sum()
+    # Compute total time and time per subject for each student per week
+    total_time = df.groupby(['student', 'week'])['time'].sum()
+    time_per_subject = df.groupby(['student', 'week', 'subject'])['time'].sum()
 
     # Convert to HTML
     total_time_html = total_time.to_frame().to_html()
     time_per_subject_html = time_per_subject.to_frame().to_html()
 
     # Render the HTML
-    return render_template('summary.html', total_time_table=total_time_html, time_per_subject_table=time_per_subject_html)
+    return render_template('summary.html', total_time_table=total_time_html, 
+                           time_per_subject_table=time_per_subject_html)
+
 
 if __name__ == "__main__":
     app.run(debug=True)
