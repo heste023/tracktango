@@ -31,6 +31,11 @@ def sms_reply():
     message_body = request.form.get('Body')
     sender_number = request.form.get('From')
 
+    # Validate message_body and sender_number before continuing
+    if not message_body or not sender_number:
+        app.logger.error(f"Invalid data: message_body={message_body}, sender_number={sender_number}")
+        return "Invalid data", 400
+
     # Store message in the database
     message = Message(body=message_body, sender=sender_number)
     db.session.add(message)
@@ -38,9 +43,11 @@ def sms_reply():
     for attempt in range(5):  # try 5 times
         try:
             db.session.commit()
+            app.logger.info(f"Message from {sender_number} committed to database.")
             break
-        except OperationalError:
+        except OperationalError as e:
             db.session.rollback()
+            app.logger.error(f"Database commit failed on attempt {attempt+1}: {str(e)}")
             if attempt == 4:  # if 5th attempt, raise the exception
                 raise
             continue  # otherwise, try again
@@ -81,7 +88,7 @@ def home():
     time_per_subject_html = time_per_subject.to_frame().to_html()
 
     # Render the HTML
-    return render_template('summary.html', total_time_table=total_time_html, 
+    return render_template('summary.html', total_time_table=total_time_html,
                            time_per_subject_table=time_per_subject_html)
 
 

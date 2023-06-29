@@ -11,7 +11,7 @@ def is_valid_message(body):
 
     if len(elements) != 5:
         return False
-    
+
     date_pattern = r'^\d{4}-\d{2}-\d{2}$'
     capital_letter_pattern = r'^[A-Z]$'
     word_or_pe_pattern = r'^[A-Za-z]+|PE$'
@@ -25,7 +25,7 @@ def is_valid_message(body):
         return False
     if not re.match(duration_pattern, elements[4].strip()):
         return False
-    
+
     return True
 
 
@@ -66,5 +66,5 @@ df = pd.DataFrame(filtered_messages, columns=['id', 'body'])
 df[['date', 'student', 'subject', 'topic', 'time']] = df['body'].str.split(',', expand=True)
 
 # Saving to CSV
-df.to_csv('cleaned_messages.csv', index=False)
+df.to_csv('/home/hedhs/text_progress_tracker/cleaned_messages.csv', index=False)
 print("CSV file has been created successfully.")
