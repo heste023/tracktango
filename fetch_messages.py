@@ -43,7 +43,7 @@ metadata = MetaData()
 metadata.reflect(bind=engine)
 
 # Get the message table
-Message = metadata.tables['message']  # Assuming 'message' is the name of your table
+Message = metadata.tables['message']  
 
 # Start a new session
 Session = sessionmaker(bind=engine)
